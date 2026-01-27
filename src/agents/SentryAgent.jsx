@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Shield, Loader2 } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -102,7 +102,11 @@ export default function SentryAgent({ config, onConfigChange }) {
   return (
     <div className="p-6 max-w-4xl space-y-4">
       <div className="flex items-center gap-3">
-        <Shield className="h-8 w-8 text-primary" />
+        <img
+          src={`${import.meta.env.BASE_URL}sentry-icon.png`}
+          alt="Sentry"
+          className="h-10 w-10 rounded object-cover"
+        />
         <div>
           <h1 className="text-2xl font-bold">Sentry Agent</h1>
           <p className="text-muted-foreground">Generate E2E Patrol tests from Zephyr specs</p>

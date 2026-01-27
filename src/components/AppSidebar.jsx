@@ -1,4 +1,4 @@
-import { FlaskConical, Shield, Bot } from 'lucide-react'
+import { FlaskConical, Bot } from 'lucide-react'
 import {
   Sidebar,
   SidebarContent,
@@ -14,7 +14,7 @@ import {
 
 const agents = [
   { id: 'unity', name: 'Unity Agent', icon: FlaskConical, desc: 'Unit Tests' },
-  { id: 'sentry', name: 'Sentry Agent', icon: Shield, desc: 'E2E Tests' },
+  { id: 'sentry', name: 'Sentry Agent', image: 'sentry-icon.png', desc: 'E2E Tests' },
 ]
 
 export function AppSidebar({ activeAgent, onAgentChange }) {
@@ -39,7 +39,15 @@ export function AppSidebar({ activeAgent, onAgentChange }) {
                     onClick={() => onAgentChange(agent.id)}
                     tooltip={agent.name}
                   >
-                    <agent.icon className="h-6 w-6" />
+                    {agent.icon ? (
+                      <agent.icon className="h-6 w-6" />
+                    ) : (
+                      <img
+                        src={`${import.meta.env.BASE_URL}${agent.image}`}
+                        alt={agent.name}
+                        className="h-6 w-6 rounded object-cover"
+                      />
+                    )}
                     <div className="flex flex-col">
                       <span className="text-base font-medium">{agent.name}</span>
                       <span className="text-sm text-muted-foreground">{agent.desc}</span>
