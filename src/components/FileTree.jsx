@@ -1,124 +1,165 @@
 import { useState, useMemo } from 'react'
+import { ChevronRight, Folder, File, Search } from 'lucide-react'
+import { cn } from '@/lib/utils'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible'
 
+// Build nested tree from flat file paths
 function buildTree(files) {
-  const root = { children: {}, files: [] }
+  const root = { name: 'root', children: {}, files: [] }
 
-  files.forEach(filePath => {
+  files.forEach((filePath) => {
     const parts = filePath.split('/')
     let current = root
 
     for (let i = 0; i < parts.length - 1; i++) {
       const part = parts[i]
       if (!current.children[part]) {
-        current.children[part] = { children: {}, files: [], path: parts.slice(0, i + 1).join('/') }
+        current.children[part] = {
+          name: part,
+          path: parts.slice(0, i + 1).join('/'),
+          children: {},
+          files: [],
+        }
       }
       current = current.children[part]
     }
 
-    current.files.push({ name: parts[parts.length - 1], path: filePath })
+    current.files.push({
+      name: parts[parts.length - 1],
+      path: filePath,
+    })
   })
 
   return root
 }
 
-function countFiles(node) {
-  let count = node.files.length
-  for (const child of Object.values(node.children)) {
-    count += countFiles(child)
-  }
-  return count
-}
-
-function getAllFilesInNode(node) {
-  let files = node.files.map(f => f.path)
-  for (const child of Object.values(node.children)) {
-    files = files.concat(getAllFilesInNode(child))
-  }
+// Get all file paths under a node
+function getAllFiles(node) {
+  let files = node.files.map((f) => f.path)
+  Object.values(node.children).forEach((child) => {
+    files = files.concat(getAllFiles(child))
+  })
   return files
 }
 
-function TreeNode({ name, node, depth, selectedFiles, onToggleFile, onToggleFolder, expandedFolders, onToggleExpand, searchQuery }) {
+// Folder component
+function TreeFolder({
+  node,
+  selectedFiles,
+  onToggleFile,
+  onToggleFolder,
+  expandedFolders,
+  onToggleExpand,
+  searchQuery,
+  depth = 0,
+}) {
   const isExpanded = expandedFolders.has(node.path)
-  const allFiles = useMemo(() => getAllFilesInNode(node), [node])
-  const selectedCount = allFiles.filter(f => selectedFiles.has(f)).length
-  const isFullySelected = selectedCount === allFiles.length
-  const isPartiallySelected = selectedCount > 0 && selectedCount < allFiles.length
+  const allFiles = useMemo(() => getAllFiles(node), [node])
+  const selectedCount = allFiles.filter((f) => selectedFiles.has(f)).length
+
+  const isChecked = selectedCount === allFiles.length && allFiles.length > 0
+  const isIndeterminate = selectedCount > 0 && selectedCount < allFiles.length
 
   const folderNames = Object.keys(node.children).sort()
   const files = [...node.files].sort((a, b) => a.name.localeCompare(b.name))
 
   // Filter by search
-  const matchesSearch = (path) => !searchQuery || path.toLowerCase().includes(searchQuery.toLowerCase())
+  const matchesSearch = (path) =>
+    !searchQuery || path.toLowerCase().includes(searchQuery.toLowerCase())
   const hasVisibleChildren = allFiles.some(matchesSearch)
 
   if (searchQuery && !hasVisibleChildren) return null
 
   return (
-    <div>
+    <Collapsible open={isExpanded} onOpenChange={() => onToggleExpand(node.path)}>
       <div
-        className="flex items-center gap-1 py-1 px-2 rounded hover:bg-gray-800 cursor-pointer group"
-        onClick={() => onToggleExpand(node.path)}
+        className="flex items-center gap-1 py-1 px-1 rounded-md hover:bg-accent group"
+        style={{ paddingLeft: `${depth * 12 + 4}px` }}
       >
-        <span className={`text-xs text-gray-600 w-4 transition-transform ${isExpanded ? '' : '-rotate-90'}`}>
-          ▼
-        </span>
-        <input
-          type="checkbox"
-          checked={isFullySelected}
-          ref={(el) => { if (el) el.indeterminate = isPartiallySelected }}
-          onChange={(e) => {
-            e.stopPropagation()
-            onToggleFolder(allFiles, !isFullySelected)
+        <CollapsibleTrigger asChild>
+          <Button variant="ghost" size="icon" className="h-6 w-6 p-0">
+            <ChevronRight
+              className={cn(
+                'h-4 w-4 transition-transform',
+                isExpanded && 'rotate-90'
+              )}
+            />
+          </Button>
+        </CollapsibleTrigger>
+
+        <Checkbox
+          checked={isChecked}
+          ref={(el) => {
+            if (el) el.indeterminate = isIndeterminate
           }}
-          onClick={(e) => e.stopPropagation()}
-          className="accent-blue-500"
+          onCheckedChange={(checked) => onToggleFolder(allFiles, checked)}
+          className="mr-1"
         />
-        <span className="text-sm">📁</span>
-        <span className="text-sm flex-1">{name}</span>
-        <span className="text-xs text-gray-600">{allFiles.length}</span>
+
+        <Folder className="h-4 w-4 text-muted-foreground mr-1" />
+        <span className="text-sm flex-1">{node.name}</span>
+        <span className="text-xs text-muted-foreground pr-2">{allFiles.length}</span>
       </div>
 
-      {isExpanded && (
-        <div className="ml-5">
-          {folderNames.map(folderName => (
-            <TreeNode
-              key={node.children[folderName].path}
-              name={folderName}
-              node={node.children[folderName]}
+      <CollapsibleContent>
+        {folderNames.map((folderName) => (
+          <TreeFolder
+            key={node.children[folderName].path}
+            node={node.children[folderName]}
+            selectedFiles={selectedFiles}
+            onToggleFile={onToggleFile}
+            onToggleFolder={onToggleFolder}
+            expandedFolders={expandedFolders}
+            onToggleExpand={onToggleExpand}
+            searchQuery={searchQuery}
+            depth={depth + 1}
+          />
+        ))}
+
+        {files.map((file) => {
+          if (searchQuery && !matchesSearch(file.path)) return null
+          return (
+            <TreeFile
+              key={file.path}
+              file={file}
+              isSelected={selectedFiles.has(file.path)}
+              onToggle={() => onToggleFile(file.path)}
               depth={depth + 1}
-              selectedFiles={selectedFiles}
-              onToggleFile={onToggleFile}
-              onToggleFolder={onToggleFolder}
-              expandedFolders={expandedFolders}
-              onToggleExpand={onToggleExpand}
-              searchQuery={searchQuery}
             />
-          ))}
-          {files.map(file => {
-            if (searchQuery && !matchesSearch(file.path)) return null
-            return (
-              <div
-                key={file.path}
-                className="flex items-center gap-1 py-1 px-2 rounded hover:bg-gray-800"
-              >
-                <span className="w-4" />
-                <input
-                  type="checkbox"
-                  checked={selectedFiles.has(file.path)}
-                  onChange={() => onToggleFile(file.path)}
-                  className="accent-blue-500"
-                />
-                <span className="text-sm">📄</span>
-                <span className="text-sm text-gray-300">{file.name}</span>
-              </div>
-            )
-          })}
-        </div>
-      )}
+          )
+        })}
+      </CollapsibleContent>
+    </Collapsible>
+  )
+}
+
+// File component
+function TreeFile({ file, isSelected, onToggle, depth }) {
+  return (
+    <div
+      className="flex items-center gap-1 py-1 px-1 rounded-md hover:bg-accent"
+      style={{ paddingLeft: `${depth * 12 + 28}px` }}
+    >
+      <Checkbox
+        checked={isSelected}
+        onCheckedChange={onToggle}
+        className="mr-1"
+      />
+      <File className="h-4 w-4 text-muted-foreground mr-1" />
+      <span className="text-sm">{file.name}</span>
     </div>
   )
 }
 
+// Main FileTree component
 export default function FileTree({ files, selectedFiles, onSelectionChange }) {
   const [search, setSearch] = useState('')
   const [expandedFolders, setExpandedFolders] = useState(new Set(['lib']))
@@ -135,10 +176,10 @@ export default function FileTree({ files, selectedFiles, onSelectionChange }) {
     onSelectionChange(newSelected)
   }
 
-  const toggleFolder = (folderFiles, select) => {
+  const toggleFolder = (folderFiles, checked) => {
     const newSelected = new Set(selectedFiles)
-    folderFiles.forEach(f => {
-      if (select) {
+    folderFiles.forEach((f) => {
+      if (checked) {
         newSelected.add(f)
       } else {
         newSelected.delete(f)
@@ -180,46 +221,54 @@ export default function FileTree({ files, selectedFiles, onSelectionChange }) {
   }
 
   return (
-    <div>
-      <div className="flex gap-2 mb-3 flex-wrap">
-        <button onClick={expandAll} className="px-3 py-1 text-xs bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded">
-          Expand All
-        </button>
-        <button onClick={collapseAll} className="px-3 py-1 text-xs bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded">
-          Collapse All
-        </button>
-        <button onClick={selectAll} className="px-3 py-1 text-xs bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded">
-          Select All
-        </button>
-        <button onClick={selectNone} className="px-3 py-1 text-xs bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded">
-          Clear
-        </button>
-      </div>
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-sm font-medium">Select Files</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" size="sm" onClick={expandAll}>
+            Expand All
+          </Button>
+          <Button variant="outline" size="sm" onClick={collapseAll}>
+            Collapse All
+          </Button>
+          <Button variant="outline" size="sm" onClick={selectAll}>
+            Select All
+          </Button>
+          <Button variant="outline" size="sm" onClick={selectNone}>
+            Clear
+          </Button>
+        </div>
 
-      <input
-        type="text"
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        placeholder="Search files..."
-        className="w-full px-3 py-2 mb-3 bg-gray-950 border border-gray-800 rounded-md text-sm focus:outline-none focus:border-blue-500"
-      />
-
-      <div className="max-h-96 overflow-y-auto bg-gray-950 border border-gray-800 rounded-md p-2">
-        {Object.keys(tree.children).sort().map(folderName => (
-          <TreeNode
-            key={tree.children[folderName].path}
-            name={folderName}
-            node={tree.children[folderName]}
-            depth={0}
-            selectedFiles={selectedFiles}
-            onToggleFile={toggleFile}
-            onToggleFolder={toggleFolder}
-            expandedFolders={expandedFolders}
-            onToggleExpand={toggleExpand}
-            searchQuery={search}
+        <div className="relative">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            type="text"
+            placeholder="Search files..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9"
           />
-        ))}
-      </div>
-    </div>
+        </div>
+
+        <div className="max-h-96 overflow-y-auto border rounded-md p-2">
+          {Object.keys(tree.children)
+            .sort()
+            .map((folderName) => (
+              <TreeFolder
+                key={tree.children[folderName].path}
+                node={tree.children[folderName]}
+                selectedFiles={selectedFiles}
+                onToggleFile={toggleFile}
+                onToggleFolder={toggleFolder}
+                expandedFolders={expandedFolders}
+                onToggleExpand={toggleExpand}
+                searchQuery={search}
+              />
+            ))}
+        </div>
+      </CardContent>
+    </Card>
   )
 }

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar'
 import { AppSidebar } from '@/components/AppSidebar'
 import { Button } from '@/components/ui/button'
+import { Toaster } from '@/components/ui/sonner'
 import { Moon, Sun } from 'lucide-react'
 import UnityAgent from '@/agents/UnityAgent'
 import SentryAgent from '@/agents/SentryAgent'
@@ -32,6 +33,8 @@ export default function App() {
   }, [darkMode])
 
   return (
+    <>
+    <Toaster position="top-right" richColors />
     <SidebarProvider>
       <AppSidebar activeAgent={activeAgent} onAgentChange={setActiveAgent} />
       <SidebarInset>
@@ -56,5 +59,6 @@ export default function App() {
         </div>
       </SidebarInset>
     </SidebarProvider>
+    </>
   )
 }
