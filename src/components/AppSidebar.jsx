@@ -45,7 +45,7 @@ export function AppSidebar({ activeAgent, onAgentChange }) {
                       <img
                         src={`${import.meta.env.BASE_URL}${agent.image}`}
                         alt={agent.name}
-                        className="h-6 w-6 rounded object-cover"
+                        className="h-6 w-6 rounded object-cover object-center"
                       />
                     )}
                     <div className="flex flex-col">

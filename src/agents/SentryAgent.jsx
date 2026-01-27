@@ -105,7 +105,7 @@ export default function SentryAgent({ config, onConfigChange }) {
         <img
           src={`${import.meta.env.BASE_URL}sentry-icon.png`}
           alt="Sentry"
-          className="h-10 w-10 rounded object-cover"
+          className="h-10 w-10 rounded object-cover object-center"
         />
         <div>
           <h1 className="text-2xl font-bold">Sentry Agent</h1>
