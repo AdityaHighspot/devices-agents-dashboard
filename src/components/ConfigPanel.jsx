@@ -3,11 +3,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Textarea } from '@/components/ui/textarea'
 import { CheckCircle, Circle } from 'lucide-react'
 
-const EXAMPLE = `GITHUB_TOKEN=ghp_xxxx
-BUILDKITE_API_TOKEN=bkua_xxxx
-CURSOR_API_KEY=key_xxxx`
+const DEFAULT_TOKENS = [
+  { key: 'GITHUB_TOKEN', label: 'GitHub', aliases: ['GH_TOKEN'] },
+  { key: 'BUILDKITE_API_TOKEN', label: 'BuildKite', aliases: ['BUILDKITE_TOKEN'] },
+  { key: 'CURSOR_API_KEY', label: 'Cursor', aliases: [] },
+]
 
-export default function ConfigPanel({ config, onChange }) {
+export default function ConfigPanel({ config, onChange, tokens = DEFAULT_TOKENS, placeholder }) {
   const [raw, setRaw] = useState('')
   const [parsed, setParsed] = useState({})
 
@@ -30,11 +32,14 @@ export default function ConfigPanel({ config, onChange }) {
   }
 
   const mapToConfig = (envVars) => {
-    return {
-      githubToken: envVars.GITHUB_TOKEN || envVars.GH_TOKEN || '',
-      buildkiteToken: envVars.BUILDKITE_API_TOKEN || envVars.BUILDKITE_TOKEN || '',
-      cursorApiKey: envVars.CURSOR_API_KEY || '',
-    }
+    const result = {}
+    tokens.forEach((t) => {
+      const value = envVars[t.key] || t.aliases?.find((a) => envVars[a]) && envVars[t.aliases.find((a) => envVars[a])] || ''
+      // Use camelCase version of key for config
+      const configKey = t.key.toLowerCase().replace(/_([a-z])/g, (_, c) => c.toUpperCase())
+      result[configKey] = value
+    })
+    return result
   }
 
   const handleChange = (text) => {
@@ -44,39 +49,42 @@ export default function ConfigPanel({ config, onChange }) {
     onChange(mapToConfig(envVars))
   }
 
-  const hasToken = (name) => {
-    return parsed[name] && parsed[name].length > 0
+  const hasToken = (token) => {
+    if (parsed[token.key]) return true
+    return token.aliases?.some((a) => parsed[a]) || false
   }
 
-  const TokenStatus = ({ name, label }) => {
-    const found = hasToken(name)
+  const TokenStatus = ({ token }) => {
+    const found = hasToken(token)
     return (
-      <div className={`flex items-center gap-1.5 text-xs ${found ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}`}>
-        {found ? <CheckCircle className="h-3 w-3" /> : <Circle className="h-3 w-3" />}
-        <span>{label}</span>
+      <div className={`flex items-center gap-1 text-xs ${found ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}`}>
+        {found ? <CheckCircle className="h-3 w-3 shrink-0" /> : <Circle className="h-3 w-3 shrink-0" />}
+        <span className="truncate">{token.label}</span>
       </div>
     )
   }
+
+  const defaultPlaceholder = tokens.map((t) => `${t.key}=xxx`).join('\n')
 
   return (
     <Card className="mb-4">
       <CardHeader className="pb-3">
         <CardTitle className="text-sm font-medium">Environment Variables</CardTitle>
-        <CardDescription>Paste key=value pairs (not stored)</CardDescription>
+        <CardDescription>Paste key=value pairs</CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
         <Textarea
           value={raw}
           onChange={(e) => handleChange(e.target.value)}
-          placeholder={EXAMPLE}
-          rows={5}
+          placeholder={placeholder || defaultPlaceholder}
+          rows={Math.max(5, tokens.length + 1)}
           spellCheck={false}
           className="font-mono text-sm resize-none"
         />
-        <div className="flex gap-4">
-          <TokenStatus name="GITHUB_TOKEN" label="GITHUB_TOKEN" />
-          <TokenStatus name="BUILDKITE_API_TOKEN" label="BUILDKITE_API_TOKEN" />
-          <TokenStatus name="CURSOR_API_KEY" label="CURSOR_API_KEY" />
+        <div className="flex flex-wrap gap-x-4 gap-y-1">
+          {tokens.map((t) => (
+            <TokenStatus key={t.key} token={t} />
+          ))}
         </div>
       </CardContent>
     </Card>

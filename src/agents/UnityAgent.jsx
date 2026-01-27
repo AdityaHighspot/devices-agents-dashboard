@@ -4,6 +4,12 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import ConfigPanel from '@/components/ConfigPanel'
+
+const UNITY_TOKENS = [
+  { key: 'GITHUB_TOKEN', label: 'GitHub', aliases: ['GH_TOKEN'] },
+  { key: 'BUILDKITE_API_TOKEN', label: 'BuildKite', aliases: ['BUILDKITE_TOKEN'] },
+  { key: 'CURSOR_API_KEY', label: 'Cursor', aliases: [] },
+]
 import BranchSelector from '@/components/BranchSelector'
 import FileTree from '@/components/FileTree'
 
@@ -176,7 +182,7 @@ export default function UnityAgent({ config, onConfigChange }) {
         </div>
       </div>
 
-      <ConfigPanel config={config} onChange={onConfigChange} />
+      <ConfigPanel config={config} onChange={onConfigChange} tokens={UNITY_TOKENS} />
 
       <Card>
         <CardHeader className="pb-3">
