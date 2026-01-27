@@ -15,15 +15,13 @@ const SENTRY_TOKENS = [
   { key: 'BUILDKITE_API_TOKEN', label: 'BuildKite', aliases: ['BUILDKITE_TOKEN'] },
   { key: 'CURSOR_API_KEY', label: 'Cursor', aliases: [] },
   { key: 'ZEPHYR_TOKEN', label: 'Zephyr', aliases: [] },
-  { key: 'BROWSERSTACK_USERNAME', label: 'BrowserStack Username', aliases: [] },
-  { key: 'BROWSERSTACK_ACCESS_KEY', label: 'BrowserStack Access Key', aliases: [] },
 ]
 
 export default function SentryAgent({ config, onConfigChange }) {
   const [mode, setMode] = useState('migrate')
   const [loading, setLoading] = useState(false)
 
-  // Migrate mode fields
+  // Migrate/New mode fields
   const [folderId, setFolderId] = useState('')
   const [filterType, setFilterType] = useState('automated-appium')
   const [testCount, setTestCount] = useState('1')
@@ -34,22 +32,17 @@ export default function SentryAgent({ config, onConfigChange }) {
   const [instruction, setInstruction] = useState('')
   const [previousLogs, setPreviousLogs] = useState('')
 
-  const runPipeline = async () => {
-    if (!config.buildkiteApiToken) {
-      toast.error('BuildKite token required')
-      return
-    }
-    if (!config.cursorApiKey) {
-      toast.error('Cursor API Key required')
-      return
-    }
-
+  const canRun = () => {
+    if (!config.buildkiteApiToken || !config.cursorApiKey) return false
     if (mode === 'fix') {
-      if (!agentId || !branchName) {
-        toast.error('Agent ID and Branch Name required for fix mode')
-        return
-      }
+      return agentId && branchName
     }
+    // migrate/new need zephyr token
+    return !!config.zephyrToken
+  }
+
+  const runPipeline = async () => {
+    if (!canRun()) return
 
     setLoading(true)
     try {
@@ -57,20 +50,18 @@ export default function SentryAgent({ config, onConfigChange }) {
         MODE: mode,
         CURSOR_API_KEY: config.cursorApiKey,
         GITHUB_TOKEN: config.githubToken,
-        ZEPHYR_TOKEN: config.zephyrToken || '',
-        BROWSERSTACK_USERNAME: config.browserstackUsername || '',
-        BROWSERSTACK_ACCESS_KEY: config.browserstackAccessKey || '',
       }
 
-      if (mode === 'migrate') {
-        env.FILTER_TYPE = filterType
-        env.TEST_COUNT = testCount
-        if (folderId) env.FOLDER_ID = folderId
-      } else {
+      if (mode === 'fix') {
         env.AGENT_ID = agentId
         env.BRANCH_NAME = branchName
         env.USER_INSTRUCTION = instruction
         env.PREVIOUS_LOGS = previousLogs
+      } else {
+        env.ZEPHYR_TOKEN = config.zephyrToken
+        env.FILTER_TYPE = filterType
+        env.TEST_COUNT = testCount
+        if (folderId) env.FOLDER_ID = folderId
       }
 
       const response = await fetch(
@@ -84,7 +75,7 @@ export default function SentryAgent({ config, onConfigChange }) {
           body: JSON.stringify({
             commit: 'HEAD',
             branch: mode === 'fix' ? branchName : 'feat/sentry-agent',
-            message: mode === 'fix' ? `Sentry fix: ${instruction.slice(0, 50)}` : `Sentry migrate: ${testCount} test(s)`,
+            message: mode === 'fix' ? `Sentry fix: ${instruction.slice(0, 50)}` : `Sentry ${mode}: ${testCount} test(s)`,
             env,
           }),
         }
@@ -128,13 +119,20 @@ export default function SentryAgent({ config, onConfigChange }) {
           <CardDescription>Choose how to run the agent</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button
               variant={mode === 'migrate' ? 'default' : 'outline'}
               size="sm"
               onClick={() => setMode('migrate')}
             >
               Migrate
+            </Button>
+            <Button
+              variant={mode === 'new' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setMode('new')}
+            >
+              New
             </Button>
             <Button
               variant={mode === 'fix' ? 'default' : 'outline'}
@@ -147,11 +145,17 @@ export default function SentryAgent({ config, onConfigChange }) {
         </CardContent>
       </Card>
 
-      {mode === 'migrate' ? (
+      {mode !== 'fix' ? (
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">Migrate Settings</CardTitle>
-            <CardDescription>Fetch tests from Zephyr and generate Patrol tests</CardDescription>
+            <CardTitle className="text-sm font-medium">
+              {mode === 'migrate' ? 'Migrate Settings' : 'New Test Settings'}
+            </CardTitle>
+            <CardDescription>
+              {mode === 'migrate'
+                ? 'Convert existing Appium tests to Patrol'
+                : 'Create fresh Patrol tests from Zephyr specs'}
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid gap-4 sm:grid-cols-2">
@@ -233,9 +237,9 @@ export default function SentryAgent({ config, onConfigChange }) {
       )}
 
       <div className="flex items-center gap-4">
-        <Button onClick={runPipeline} disabled={loading}>
+        <Button onClick={runPipeline} disabled={loading || !canRun()}>
           {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          {loading ? 'Triggering...' : `Run Sentry Agent (${mode})`}
+          {loading ? 'Triggering...' : 'Run Sentry Agent'}
         </Button>
       </div>
     </div>
