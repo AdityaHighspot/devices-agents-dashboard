@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import ConfigPanel from '@/components/ConfigPanel'
+import ZephyrTestTree from '@/components/ZephyrTestTree'
 
 const BUILDKITE_ORG = 'highspot'
 const BUILDKITE_PIPELINE = 'voyager-sentry-agent'
@@ -20,11 +21,7 @@ const SENTRY_TOKENS = [
 export default function SentryAgent({ config, onConfigChange }) {
   const [mode, setMode] = useState('migrate')
   const [loading, setLoading] = useState(false)
-
-  // Migrate/New mode fields
-  const [folderId, setFolderId] = useState('')
-  const [filterType, setFilterType] = useState('automated-appium')
-  const [testCount, setTestCount] = useState('1')
+  const [selectedTests, setSelectedTests] = useState(new Set())
 
   // Fix mode fields
   const [agentId, setAgentId] = useState('')
@@ -37,8 +34,8 @@ export default function SentryAgent({ config, onConfigChange }) {
     if (mode === 'fix') {
       return agentId && branchName
     }
-    // migrate/new need zephyr token
-    return !!config.zephyrToken
+    // migrate/new need selected tests
+    return selectedTests.size > 0
   }
 
   const runPipeline = async () => {
@@ -58,10 +55,9 @@ export default function SentryAgent({ config, onConfigChange }) {
         env.USER_INSTRUCTION = instruction
         env.PREVIOUS_LOGS = previousLogs
       } else {
-        env.ZEPHYR_TOKEN = config.zephyrToken
-        env.FILTER_TYPE = filterType
-        env.TEST_COUNT = testCount
-        if (folderId) env.FOLDER_ID = folderId
+        // Pass selected test keys
+        env.TEST_KEYS = Array.from(selectedTests).join(',')
+        env.ZEPHYR_TOKEN = config.zephyrToken || ''
       }
 
       const response = await fetch(
@@ -75,7 +71,9 @@ export default function SentryAgent({ config, onConfigChange }) {
           body: JSON.stringify({
             commit: 'HEAD',
             branch: mode === 'fix' ? branchName : 'feat/sentry-agent',
-            message: mode === 'fix' ? `Sentry fix: ${instruction.slice(0, 50)}` : `Sentry ${mode}: ${testCount} test(s)`,
+            message: mode === 'fix'
+              ? `Sentry fix: ${instruction.slice(0, 50)}`
+              : `Sentry ${mode}: ${selectedTests.size} test(s)`,
             env,
           }),
         }
@@ -146,48 +144,10 @@ export default function SentryAgent({ config, onConfigChange }) {
       </Card>
 
       {mode !== 'fix' ? (
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">
-              {mode === 'migrate' ? 'Migrate Settings' : 'New Test Settings'}
-            </CardTitle>
-            <CardDescription>
-              {mode === 'migrate'
-                ? 'Convert existing Appium tests to Patrol'
-                : 'Create fresh Patrol tests from Zephyr specs'}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Folder ID (optional)</label>
-                <Input
-                  value={folderId}
-                  onChange={(e) => setFolderId(e.target.value)}
-                  placeholder="e.g. 12345"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Filter Type</label>
-                <Input
-                  value={filterType}
-                  onChange={(e) => setFilterType(e.target.value)}
-                  placeholder="automated-appium"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Test Count</label>
-                <Input
-                  type="number"
-                  min="1"
-                  max="10"
-                  value={testCount}
-                  onChange={(e) => setTestCount(e.target.value)}
-                />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <ZephyrTestTree
+          selectedTests={selectedTests}
+          onSelectionChange={setSelectedTests}
+        />
       ) : (
         <Card>
           <CardHeader className="pb-3">
@@ -241,6 +201,11 @@ export default function SentryAgent({ config, onConfigChange }) {
           {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           {loading ? 'Triggering...' : 'Run Sentry Agent'}
         </Button>
+        {mode !== 'fix' && (
+          <span className="text-sm text-muted-foreground">
+            {selectedTests.size} test{selectedTests.size !== 1 ? 's' : ''} selected
+          </span>
+        )}
       </div>
     </div>
   )
