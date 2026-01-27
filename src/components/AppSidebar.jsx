@@ -22,7 +22,7 @@ export function AppSidebar({ activeAgent, onAgentChange }) {
     <Sidebar>
       <SidebarHeader className="h-14 border-b border-sidebar-border px-4 !flex-row items-center gap-2">
         <Bot className="h-5 w-5" />
-        <span className="text-sm font-semibold">Agents Dashboard</span>
+        <span className="text-sm font-semibold">Devices Agents</span>
       </SidebarHeader>
 
       <SidebarContent>

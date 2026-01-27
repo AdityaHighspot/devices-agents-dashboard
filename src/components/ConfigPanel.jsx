@@ -51,7 +51,7 @@ export default function ConfigPanel({ config, onChange }) {
   const TokenStatus = ({ name, label }) => {
     const found = hasToken(name)
     return (
-      <div className={`flex items-center gap-1.5 text-xs ${found ? 'text-green-500' : 'text-muted-foreground'}`}>
+      <div className={`flex items-center gap-1.5 text-xs ${found ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}`}>
         {found ? <CheckCircle className="h-3 w-3" /> : <Circle className="h-3 w-3" />}
         <span>{label}</span>
       </div>
