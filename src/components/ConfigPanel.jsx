@@ -1,4 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Textarea } from '@/components/ui/textarea'
+import { CheckCircle, Circle } from 'lucide-react'
 
 const EXAMPLE = `GITHUB_TOKEN=ghp_xxxx
 BUILDKITE_API_TOKEN=bkua_xxxx
@@ -8,7 +11,6 @@ export default function ConfigPanel({ config, onChange }) {
   const [raw, setRaw] = useState('')
   const [parsed, setParsed] = useState({})
 
-  // Parse key=value pairs from text
   const parseEnvVars = (text) => {
     const result = {}
     const lines = text.split('\n')
@@ -27,7 +29,6 @@ export default function ConfigPanel({ config, onChange }) {
     return result
   }
 
-  // Map parsed env vars to config keys
   const mapToConfig = (envVars) => {
     return {
       githubToken: envVars.GITHUB_TOKEN || envVars.GH_TOKEN || '',
@@ -47,33 +48,37 @@ export default function ConfigPanel({ config, onChange }) {
     return parsed[name] && parsed[name].length > 0
   }
 
+  const TokenStatus = ({ name, label }) => {
+    const found = hasToken(name)
+    return (
+      <div className={`flex items-center gap-1.5 text-xs ${found ? 'text-green-500' : 'text-muted-foreground'}`}>
+        {found ? <CheckCircle className="h-3 w-3" /> : <Circle className="h-3 w-3" />}
+        <span>{label}</span>
+      </div>
+    )
+  }
+
   return (
-    <div className="bg-gray-900 border border-gray-800 rounded-lg p-5 mb-4">
-      <div className="flex justify-between items-center mb-3">
-        <h2 className="text-sm font-medium text-gray-400 uppercase tracking-wide">Environment Variables</h2>
-        <span className="text-xs text-gray-600">Paste key=value pairs (not stored)</span>
-      </div>
-
-      <textarea
-        value={raw}
-        onChange={(e) => handleChange(e.target.value)}
-        placeholder={EXAMPLE}
-        rows={5}
-        spellCheck={false}
-        className="w-full px-3 py-3 bg-gray-950 border border-gray-800 rounded-md text-sm font-mono focus:outline-none focus:border-blue-500 resize-none"
-      />
-
-      <div className="flex gap-4 mt-3 text-xs">
-        <span className={hasToken('GITHUB_TOKEN') || hasToken('GH_TOKEN') ? 'text-green-500' : 'text-gray-600'}>
-          {hasToken('GITHUB_TOKEN') || hasToken('GH_TOKEN') ? '✓' : '○'} GITHUB_TOKEN
-        </span>
-        <span className={hasToken('BUILDKITE_API_TOKEN') || hasToken('BUILDKITE_TOKEN') ? 'text-green-500' : 'text-gray-600'}>
-          {hasToken('BUILDKITE_API_TOKEN') || hasToken('BUILDKITE_TOKEN') ? '✓' : '○'} BUILDKITE_API_TOKEN
-        </span>
-        <span className={hasToken('CURSOR_API_KEY') ? 'text-green-500' : 'text-gray-600'}>
-          {hasToken('CURSOR_API_KEY') ? '✓' : '○'} CURSOR_API_KEY
-        </span>
-      </div>
-    </div>
+    <Card className="mb-4">
+      <CardHeader className="pb-3">
+        <CardTitle className="text-sm font-medium">Environment Variables</CardTitle>
+        <CardDescription>Paste key=value pairs (not stored)</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <Textarea
+          value={raw}
+          onChange={(e) => handleChange(e.target.value)}
+          placeholder={EXAMPLE}
+          rows={5}
+          spellCheck={false}
+          className="font-mono text-sm resize-none"
+        />
+        <div className="flex gap-4">
+          <TokenStatus name="GITHUB_TOKEN" label="GITHUB_TOKEN" />
+          <TokenStatus name="BUILDKITE_API_TOKEN" label="BUILDKITE_API_TOKEN" />
+          <TokenStatus name="CURSOR_API_KEY" label="CURSOR_API_KEY" />
+        </div>
+      </CardContent>
+    </Card>
   )
 }

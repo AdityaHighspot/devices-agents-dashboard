@@ -1,37 +1,56 @@
-export default function StatusCard({ status, onDismiss }) {
-  const bgColor = {
-    success: 'bg-green-950 border-green-800',
-    error: 'bg-red-950 border-red-800',
-    loading: 'bg-gray-900 border-gray-800',
-  }[status.type] || 'bg-gray-900 border-gray-800'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Button } from '@/components/ui/button'
+import { CheckCircle, XCircle, Loader2, X } from 'lucide-react'
 
-  const textColor = {
-    success: 'text-green-400',
-    error: 'text-red-400',
-    loading: 'text-gray-400',
-  }[status.type] || 'text-gray-400'
+export default function StatusCard({ status, onDismiss }) {
+  const variants = {
+    success: {
+      variant: 'default',
+      icon: CheckCircle,
+      className: 'border-green-500/50 text-green-500 [&>svg]:text-green-500',
+    },
+    error: {
+      variant: 'destructive',
+      icon: XCircle,
+      className: '',
+    },
+    loading: {
+      variant: 'default',
+      icon: Loader2,
+      className: '[&>svg]:animate-spin',
+    },
+  }
+
+  const config = variants[status.type] || variants.loading
+  const Icon = config.icon
 
   return (
-    <div className={`${bgColor} border rounded-lg p-4 flex justify-between items-start`}>
-      <div>
-        <p className={`${textColor} text-sm`}>{status.message}</p>
+    <Alert variant={config.variant} className={`relative ${config.className}`}>
+      <Icon className="h-4 w-4" />
+      <AlertTitle className="flex items-center justify-between">
+        <span>{status.type === 'success' ? 'Success' : status.type === 'error' ? 'Error' : 'Loading'}</span>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-6 w-6 absolute top-2 right-2"
+          onClick={onDismiss}
+        >
+          <X className="h-4 w-4" />
+        </Button>
+      </AlertTitle>
+      <AlertDescription>
+        {status.message}
         {status.link && (
           <a
             href={status.link.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-blue-400 hover:underline text-sm mt-2 inline-block"
+            className="block mt-2 text-primary hover:underline"
           >
             {status.link.text} →
           </a>
         )}
-      </div>
-      <button
-        onClick={onDismiss}
-        className="text-gray-600 hover:text-gray-400 text-lg leading-none"
-      >
-        ×
-      </button>
-    </div>
+      </AlertDescription>
+    </Alert>
   )
 }
