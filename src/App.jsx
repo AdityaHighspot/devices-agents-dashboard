@@ -6,6 +6,7 @@ import { Toaster } from '@/components/ui/sonner'
 import { Moon, Sun } from 'lucide-react'
 import UnityAgent from '@/agents/UnityAgent'
 import SentryAgent from '@/agents/SentryAgent'
+import TranslationsAgent from '@/agents/TranslationsAgent'
 
 export default function App() {
   const [activeAgent, setActiveAgent] = useState('unity')
@@ -55,6 +56,9 @@ export default function App() {
           )}
           {activeAgent === 'sentry' && (
             <SentryAgent config={config} onConfigChange={setConfig} />
+          )}
+          {activeAgent === 'translations' && (
+            <TranslationsAgent />
           )}
         </div>
       </SidebarInset>

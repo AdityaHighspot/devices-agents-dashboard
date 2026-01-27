@@ -1,4 +1,4 @@
-import { FlaskConical, Bot } from 'lucide-react'
+import { FlaskConical, Bot, Languages } from 'lucide-react'
 import {
   Sidebar,
   SidebarContent,
@@ -15,6 +15,7 @@ import {
 const agents = [
   { id: 'unity', name: 'Unity Agent', icon: FlaskConical, desc: 'Unit Tests' },
   { id: 'sentry', name: 'Sentry Agent', image: 'sentry-icon.png', desc: 'E2E Tests' },
+  { id: 'translations', name: 'Translations Agent', icon: Languages, desc: 'Localization' },
 ]
 
 export function AppSidebar({ activeAgent, onAgentChange }) {
