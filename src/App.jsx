@@ -3,12 +3,15 @@ import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/s
 import { AppSidebar } from '@/components/AppSidebar'
 import { Button } from '@/components/ui/button'
 import { Toaster } from '@/components/ui/sonner'
-import { Moon, Sun } from 'lucide-react'
+import { Moon, Sun, LogOut, Loader2 } from 'lucide-react'
+import { useAuth } from '@/contexts/AuthContext'
+import LoginPage from '@/components/LoginPage'
 import UnityAgent from '@/agents/UnityAgent'
 import SentryAgent from '@/agents/SentryAgent'
 import TranslationsAgent from '@/agents/TranslationsAgent'
 
 export default function App() {
+  const { user, loading, logout } = useAuth()
   const [activeAgent, setActiveAgent] = useState('unity')
   const [config, setConfig] = useState({
     githubToken: '',
@@ -33,36 +36,56 @@ export default function App() {
     }
   }, [darkMode])
 
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    )
+  }
+
+  if (!user) {
+    return <LoginPage />
+  }
+
   return (
     <>
-    <Toaster position="top-right" richColors />
-    <SidebarProvider>
-      <AppSidebar activeAgent={activeAgent} onAgentChange={setActiveAgent} />
-      <SidebarInset>
-        <header className="flex h-14 items-center gap-2 border-b px-4 lg:px-6">
-          <SidebarTrigger className="-ml-1" />
-          <div className="flex-1" />
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setDarkMode(!darkMode)}
-          >
-            {darkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-          </Button>
-        </header>
-        <div className="flex-1 overflow-auto">
-          {activeAgent === 'unity' && (
-            <UnityAgent config={config} onConfigChange={setConfig} />
-          )}
-          {activeAgent === 'sentry' && (
-            <SentryAgent config={config} onConfigChange={setConfig} />
-          )}
-          {activeAgent === 'translations' && (
-            <TranslationsAgent />
-          )}
-        </div>
-      </SidebarInset>
-    </SidebarProvider>
+      <Toaster position="top-right" richColors />
+      <SidebarProvider>
+        <AppSidebar activeAgent={activeAgent} onAgentChange={setActiveAgent} />
+        <SidebarInset>
+          <header className="flex h-14 items-center gap-2 border-b px-4 lg:px-6">
+            <SidebarTrigger className="-ml-1" />
+            <div className="flex-1" />
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setDarkMode(!darkMode)}
+            >
+              {darkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={logout}
+              title="Sign out"
+            >
+              <LogOut className="h-5 w-5" />
+            </Button>
+          </header>
+          <div className="flex-1 overflow-auto">
+            {activeAgent === 'unity' && (
+              <UnityAgent config={config} onConfigChange={setConfig} />
+            )}
+            {activeAgent === 'sentry' && (
+              <SentryAgent config={config} onConfigChange={setConfig} />
+            )}
+            {activeAgent === 'translations' && (
+              <TranslationsAgent />
+            )}
+          </div>
+        </SidebarInset>
+      </SidebarProvider>
     </>
   )
 }
